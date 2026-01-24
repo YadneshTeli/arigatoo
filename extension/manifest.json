@@ -1,11 +1,26 @@
 {
   "manifest_version": 3,
-  "name": "Arigatoo",
+  "name": "Arigatoo - Resume Analyzer",
   "version": "1.0.0",
-  "description": "Arigatoo Chrome Extension",
+  "description": "Match your resume with job descriptions using AI. Get compatibility scores and improvement suggestions.",
   "permissions": [
     "storage",
-    "activeTab"
+    "activeTab",
+    "scripting",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://www.linkedin.com/*",
+    "https://linkedin.com/*",
+    "https://www.indeed.com/*",
+    "https://indeed.com/*",
+    "https://www.glassdoor.com/*",
+    "https://glassdoor.com/*",
+    "https://www.monster.com/*",
+    "https://www.ziprecruiter.com/*",
+    "https://www.dice.com/*",
+    "http://localhost:3000/*",
+    "http://localhost:3001/*"
   ],
   "action": {
     "default_popup": "popup.html",
@@ -25,8 +40,25 @@
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"]
+      "matches": [
+        "https://www.linkedin.com/jobs/*",
+        "https://linkedin.com/jobs/*",
+        "https://www.indeed.com/*",
+        "https://indeed.com/*",
+        "https://www.glassdoor.com/*",
+        "https://*.lever.co/*",
+        "https://*.greenhouse.io/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
     }
-  ]
+  ],
+  "externally_connectable": {
+    "matches": [
+      "http://localhost:3000/*",
+      "https://*.arigatoo.app/*"
+    ]
+  }
 }
