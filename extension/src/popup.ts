@@ -242,7 +242,7 @@ async function extractJobDescription() {
           }
         }
         const main = document.querySelector('main') || document.body;
-        return main.textContent?.trim().substring(0, 5000) || '';
+        return main.textContent?.trim().slice(0, 5000) || '';
       },
     });
 

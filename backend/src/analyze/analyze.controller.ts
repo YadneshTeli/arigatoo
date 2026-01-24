@@ -4,6 +4,11 @@ import { ParseService } from '../parse/parse.service';
 import { FirebaseAuthGuard } from '../auth/guards/firebase-auth.guard';
 import type { ParsedResume, JobDescription } from 'arigatoo-shared';
 
+// Validation constants
+const MAX_TEXT_LENGTH = 50000; // Maximum length for resume and job text
+const MIN_API_KEY_LENGTH = 10; // Minimum length for API key
+const MAX_API_KEY_LENGTH = 200; // Maximum length for API key
+
 @Controller('analyze')
 export class AnalyzeController {
     constructor(
@@ -47,16 +52,16 @@ export class AnalyzeController {
         }
 
         // Validate input sizes to prevent abuse
-        if (resumeText.length > 50000) {
-            return { success: false, error: 'Resume text is too long (max 50,000 characters)' };
+        if (resumeText.length > MAX_TEXT_LENGTH) {
+            return { success: false, error: `Resume text is too long (max ${MAX_TEXT_LENGTH.toLocaleString()} characters)` };
         }
 
-        if (jobText && jobText.length > 50000) {
-            return { success: false, error: 'Job description is too long (max 50,000 characters)' };
+        if (jobText && jobText.length > MAX_TEXT_LENGTH) {
+            return { success: false, error: `Job description is too long (max ${MAX_TEXT_LENGTH.toLocaleString()} characters)` };
         }
 
         // Validate geminiApiKey format if provided
-        if (geminiApiKey && (geminiApiKey.length < 10 || geminiApiKey.length > 200)) {
+        if (geminiApiKey && (geminiApiKey.length < MIN_API_KEY_LENGTH || geminiApiKey.length > MAX_API_KEY_LENGTH)) {
             return { success: false, error: 'Invalid API key format' };
         }
 

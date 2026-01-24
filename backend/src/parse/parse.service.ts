@@ -4,6 +4,9 @@ import * as mammoth from 'mammoth';
 import * as cheerio from 'cheerio';
 import type { ParsedResume, JobDescription } from 'arigatoo-shared';
 
+// Configuration constants
+const FETCH_TIMEOUT_MS = 10000; // Timeout for URL fetch requests in milliseconds
+
 @Injectable()
 export class ParseService {
     // ============ PDF Parsing ============
@@ -32,7 +35,7 @@ export class ParseService {
         try {
             // Add timeout to prevent hanging requests
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+            const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
             
             const response = await fetch(url, { signal: controller.signal });
             clearTimeout(timeoutId);
