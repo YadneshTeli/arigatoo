@@ -1,4 +1,5 @@
 import { Controller, Post, Body, UseGuards, Req } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { AnalyzeService } from './analyze.service';
 import { ParseService } from '../parse/parse.service';
 import { FirebaseAuthGuard } from '../auth/guards/firebase-auth.guard';
@@ -17,6 +18,7 @@ export class AnalyzeController {
     ) { }
 
     @Post()
+    @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 requests per minute
     async analyze(
         @Body('resume') resume: ParsedResume,
         @Body('jobDescription') jobDescription: JobDescription,
@@ -37,6 +39,7 @@ export class AnalyzeController {
     }
 
     @Post('quick')
+    @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 requests per minute
     async quickAnalyze(
         @Body('resumeText') resumeText: string,
         @Body('jobText') jobText?: string,

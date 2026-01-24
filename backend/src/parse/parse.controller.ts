@@ -1,5 +1,6 @@
 import { Controller, Post, Body, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { Throttle } from '@nestjs/throttler';
 import { ParseService } from './parse.service';
 
 @Controller('parse')
@@ -7,6 +8,7 @@ export class ParseController {
     constructor(private readonly parseService: ParseService) { }
 
     @Post('resume')
+    @Throttle({ default: { limit: 20, ttl: 60000 } }) // 20 requests per minute
     @UseInterceptors(FileInterceptor('file'))
     async parseResume(
         @UploadedFile() file: Express.Multer.File,
@@ -43,6 +45,7 @@ export class ParseController {
     }
 
     @Post('job')
+    @Throttle({ default: { limit: 20, ttl: 60000 } }) // 20 requests per minute
     async parseJobDescription(
         @Body('url') url?: string,
         @Body('text') text?: string,

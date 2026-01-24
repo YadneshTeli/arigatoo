@@ -2,13 +2,52 @@
 const API_URL = 'http://localhost:3001/api';
 const WEB_URL = 'http://localhost:3000';
 
+interface ParsedResume {
+  rawText?: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+  location?: string;
+  skills?: string[];
+  experience?: unknown[];
+  education?: unknown[];
+  keywords?: string[];
+}
+
+interface Resume {
+  fileName?: string;
+  parsedContent?: ParsedResume;
+}
+
+interface AnalysisScore {
+  overall: number;
+  skills: number;
+  experience: number;
+  keywords: number;
+}
+
+interface Suggestion {
+  category: string;
+  priority: string;
+  title: string;
+  description: string;
+  action?: string;
+}
+
+interface Analysis {
+  score?: AnalysisScore;
+  suggestions?: Suggestion[];
+  matchedKeywords?: string[];
+  missingKeywords?: string[];
+}
+
 interface ExtensionState {
   isLoggedIn: boolean;
   userId?: string;
   userEmail?: string;
   idToken?: string;
   geminiApiKey?: string;
-  resume?: any;
+  resume?: Resume;
 }
 
 // State
@@ -310,7 +349,7 @@ async function analyze() {
 }
 
 // Display results
-function displayResults(analysis: any) {
+function displayResults(analysis: Analysis) {
   showView('results-view');
 
   const score = analysis.score?.overall || 0;
@@ -337,7 +376,7 @@ function displayResults(analysis: any) {
   if (suggestionsList) {
     suggestionsList.innerHTML = '';
     if (analysis.suggestions?.length) {
-      analysis.suggestions.forEach((suggestion: any) => {
+      analysis.suggestions.forEach((suggestion: Suggestion) => {
         const item = document.createElement('div');
         item.className = 'suggestion-item';
         

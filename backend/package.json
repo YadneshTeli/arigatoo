@@ -26,6 +26,7 @@
     "@nestjs/config": "^3.2.0",
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/throttler": "^6.5.0",
     "@upstash/redis": "^1.36.1",
     "cache-manager": "^7.2.8",
     "cache-manager-ioredis-yet": "^2.1.2",
