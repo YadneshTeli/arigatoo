@@ -170,28 +170,49 @@ async function uploadResume(file: File) {
         headers: { 'Authorization': `Bearer ${state.idToken}` },
         body: formData,
       });
+      
+      if (!response.ok) {
+        throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
+      }
+      
       const result = await response.json();
       if (result.success) {
         state.resume = result.data.resume;
         await saveState();
+      } else {
+        throw new Error(result.error || 'Upload failed');
       }
     } else {
       const response = await fetch(`${API_URL}/parse/resume`, {
         method: 'POST',
         body: formData,
       });
+      
+      if (!response.ok) {
+        throw new Error(`Parse failed: ${response.status} ${response.statusText}`);
+      }
+      
       const result = await response.json();
       if (result.success) {
         state.resume = { fileName: file.name, parsedContent: result.data.parsedResume };
         await saveState();
+      } else {
+        throw new Error(result.error || 'Parse failed');
       }
     }
   } catch (error) {
     console.error('Upload failed:', error);
+    // Show error to user
+    const statusEl = $('resume-status');
+    if (statusEl) {
+      statusEl.textContent = error instanceof Error ? error.message : 'Upload failed';
+      statusEl.classList.remove('success');
+      statusEl.classList.add('error');
+    }
+  } finally {
+    if (btn) btn.textContent = 'Upload Resume';
+    updateUI();
   }
-
-  if (btn) btn.textContent = 'Upload Resume';
-  updateUI();
 }
 
 // Extract JD from current page
@@ -202,38 +223,44 @@ async function extractJobDescription() {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
-    if (tab.id) {
-      const result = await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        func: () => {
-          const selectors = [
-            '[data-testid="job-description"]', '.job-description', '.description__text',
-            '#job-description', '.jobsearch-jobDescriptionText', '[class*="JobDescription"]',
-            '[class*="job-description"]', 'article', 'main',
-          ];
-          for (const selector of selectors) {
-            const el = document.querySelector(selector);
-            if (el && el.textContent && el.textContent.trim().length > 200) {
-              return el.textContent.trim();
-            }
-          }
-          const main = document.querySelector('main') || document.body;
-          return main.textContent?.trim().substring(0, 5000) || '';
-        },
-      });
+    if (!tab.id) {
+      throw new Error('No active tab found');
+    }
 
-      if (result[0]?.result) {
-        const jdInput = $('jd-input') as HTMLTextAreaElement;
-        if (jdInput) jdInput.value = result[0].result;
-        const analyzeBtn = $('analyze-btn') as HTMLButtonElement;
-        if (analyzeBtn) analyzeBtn.disabled = false;
-      }
+    const result = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: () => {
+        const selectors = [
+          '[data-testid="job-description"]', '.job-description', '.description__text',
+          '#job-description', '.jobsearch-jobDescriptionText', '[class*="JobDescription"]',
+          '[class*="job-description"]', 'article', 'main',
+        ];
+        for (const selector of selectors) {
+          const el = document.querySelector(selector);
+          if (el && el.textContent && el.textContent.trim().length > 200) {
+            return el.textContent.trim();
+          }
+        }
+        const main = document.querySelector('main') || document.body;
+        return main.textContent?.trim().substring(0, 5000) || '';
+      },
+    });
+
+    if (result[0]?.result) {
+      const jdInput = $('jd-input') as HTMLTextAreaElement;
+      if (jdInput) jdInput.value = result[0].result;
+      const analyzeBtn = $('analyze-btn') as HTMLButtonElement;
+      if (analyzeBtn) analyzeBtn.disabled = false;
+    } else {
+      throw new Error('Could not extract job description from page');
     }
   } catch (error) {
     console.error('Failed to extract JD:', error);
+    // Show error message to user
+    alert(error instanceof Error ? error.message : 'Failed to extract job description');
+  } finally {
+    if (btn) btn.textContent = 'Extract from page';
   }
-
-  if (btn) btn.textContent = 'Extract from page';
 }
 
 // Analyze
@@ -261,16 +288,26 @@ async function analyze() {
       }),
     });
 
+    if (!response.ok) {
+      throw new Error(`Analysis failed: ${response.status} ${response.statusText}`);
+    }
+
     const result = await response.json();
     if (result.success && result.data?.analysis) {
       displayResults(result.data.analysis);
+    } else {
+      throw new Error(result.error || 'Analysis failed');
     }
   } catch (error) {
     console.error('Analysis failed:', error);
+    alert(error instanceof Error ? error.message : 'Analysis failed. Please try again.');
+  } finally {
+    if (analyzeBtn) {
+      analyzeBtn.textContent = 'Analyze Match';
+      analyzeBtn.disabled = false;
+    }
   }
-
-  if (analyzeBtn) {
-    analyzeBtn.textContent = 'Analyze Match';
+}
     analyzeBtn.disabled = false;
   }
 }

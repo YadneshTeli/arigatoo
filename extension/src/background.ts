@@ -9,8 +9,11 @@ chrome.runtime.onInstalled.addListener(() => {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'JOB_PAGE_DETECTED') {
     // Could show badge or notification
-    chrome.action.setBadgeText({ text: 'JD', tabId: sender.tab?.id });
-    chrome.action.setBadgeBackgroundColor({ color: '#8b5cf6' });
+    const tabId = sender.tab?.id;
+    if (tabId) {
+      chrome.action.setBadgeText({ text: 'JD', tabId });
+      chrome.action.setBadgeBackgroundColor({ color: '#8b5cf6', tabId });
+    }
   }
 });
 
