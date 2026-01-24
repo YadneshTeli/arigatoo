@@ -1,25 +1,62 @@
 'use client';
 
-
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { signInWithGoogle, logOut, onAuthChange, getIdToken, type User } from '@/lib/firebase';
 import { api, uploadFile } from '@/lib/api';
+import { ModeToggle } from '@/components/mode-toggle';
+
+import { Upload, FileText, Briefcase, BarChart, CheckCircle, XCircle } from 'lucide-react';
+
+interface Suggestion {
+  priority: 'high' | 'medium' | 'low';
+  category: string;
+  title: string;
+  description: string;
+}
+
+interface AnalysisResults {
+  score: {
+    overall: number;
+    skills: number;
+    experience: number;
+    keywords: number;
+  };
+  matchedKeywords: string[];
+  missingKeywords: string[];
+  suggestions: Suggestion[];
+}
+
+interface ResumeData {
+  fileName: string;
+  parsedContent: {
+    skills: string[];
+  };
+}
 
 export default function Home() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [resume, setResume] = useState<any>(null);
+  const [resume, setResume] = useState<ResumeData | null>(null);
   const [jobText, setJobText] = useState('');
   const [jobUrl, setJobUrl] = useState('');
-  const [analysis, setAnalysis] = useState<any>(null);
+  const [analysis, setAnalysis] = useState<AnalysisResults | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [activeTab, setActiveTab] = useState('resume');
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const fetchResume = async () => {
+    const token = await getIdToken();
+    if (!token) return;
+    const result = await api.getResume(token);
+    if (result.success && result.data) {
+      setResume((result.data as { resume: ResumeData }).resume);
+    }
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthChange((user) => {
@@ -31,15 +68,6 @@ export default function Home() {
     });
     return () => unsubscribe();
   }, []);
-
-  const fetchResume = async () => {
-    const token = await getIdToken();
-    if (!token) return;
-    const result = await api.getResume(token);
-    if (result.success && result.data) {
-      setResume((result.data as any).resume);
-    }
-  };
 
   const handleLogin = async () => {
     setLoading(true);
@@ -65,7 +93,7 @@ export default function Home() {
 
     const result = await uploadFile('/resume/upload', file, token);
     if (result.success && result.data) {
-      setResume((result.data as any).resume);
+      setResume((result.data as { resume: ResumeData }).resume);
       setActiveTab('job');
     }
     setUploading(false);
@@ -85,7 +113,7 @@ export default function Home() {
       );
 
       if (result.success && result.data) {
-        setAnalysis((result.data as any).analysis);
+        setAnalysis((result.data as { analysis: AnalysisResults }).analysis);
         setActiveTab('results');
       }
     } catch (error) {
@@ -97,37 +125,42 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="min-h-screen gradient-bg flex items-center justify-center">
-        <div className="glass-card rounded-3xl p-8">
-          <div className="animate-pulse flex space-x-2">
-            <div className="w-3 h-3 bg-white/60 rounded-full animate-bounce"></div>
-            <div className="w-3 h-3 bg-white/60 rounded-full animate-bounce delay-100"></div>
-            <div className="w-3 h-3 bg-white/60 rounded-full animate-bounce delay-200"></div>
-          </div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+            <p className="text-muted-foreground">Loading...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen gradient-bg">
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
       {/* Header */}
-      <header className="glass border-b border-white/10 sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold gradient-text">Arigatoo</h1>
+      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+             <div className="bg-primary text-primary-foreground p-1 rounded-md">
+                <BarChart className="h-5 w-5" />
+             </div>
+             <h1 className="text-xl font-bold tracking-tight">Arigatoo</h1>
+          </div>
           
-          {user ? (
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-white/70">{user.email}</span>
-              <Button variant="ghost" className="text-white/80 hover:text-white hover:bg-white/10" onClick={handleLogout}>
-                Logout
+          <div className="flex items-center gap-4">
+            <ModeToggle />
+            {user ? (
+              <div className="flex items-center gap-4">
+                <span className="text-sm text-muted-foreground hidden sm:inline-block">{user.email}</span>
+                <Button variant="outline" size="sm" onClick={handleLogout}>
+                  Logout
+                </Button>
+              </div>
+            ) : (
+              <Button onClick={handleLogin}>
+                Sign in
               </Button>
-            </div>
-          ) : (
-            <Button className="bg-white/10 hover:bg-white/20 text-white border border-white/20" onClick={handleLogin}>
-              Sign in with Google
-            </Button>
-          )}
+            )}
+          </div>
         </div>
       </header>
 
@@ -135,151 +168,155 @@ export default function Home() {
       <main className="max-w-6xl mx-auto px-6 py-12">
         {!user ? (
           // Landing
-          <div className="text-center py-20">
-            <h2 className="text-5xl font-bold text-white mb-6">
-              Resume <span className="gradient-text">Analyzer</span>
+          <div className="text-center py-24 space-y-6">
+            <h2 className="text-4xl sm:text-6xl font-extrabold tracking-tight lg:text-7xl">
+              Optimize your resume <br/>
+              <span className="text-muted-foreground">in seconds.</span>
             </h2>
-            <p className="text-xl text-white/70 mb-10 max-w-2xl mx-auto">
-              Match your resume with job descriptions using AI. Get compatibility scores and improvement suggestions.
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              AI-powered analysis to match your resume with any job description. 
+              Get clear scoring and actionable feedback.
             </p>
-            <Button 
-              size="lg" 
-              className="bg-white text-black hover:bg-white/90 text-lg px-8 py-6 rounded-2xl glow"
-              onClick={handleLogin}
-            >
-              Get Started
-            </Button>
+            <div className="pt-4">
+                <Button size="lg" className="h-12 px-8 text-lg" onClick={handleLogin}>
+                Get Started
+                </Button>
+            </div>
           </div>
         ) : (
           // Dashboard
-          <div className="space-y-8">
+          <div className="max-w-4xl mx-auto space-y-8">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="glass-card rounded-2xl p-2 w-full grid grid-cols-3 gap-2">
-                <TabsTrigger 
-                  value="resume" 
-                  className="rounded-xl data-[state=active]:bg-white/20 data-[state=active]:text-white text-white/60"
-                >
-                  Resume
+              <TabsList className="grid w-full grid-cols-3 h-12">
+                <TabsTrigger value="resume" className="text-base gap-2">
+                    <FileText className="h-4 w-4" /> Resume
                 </TabsTrigger>
-                <TabsTrigger 
-                  value="job" 
-                  className="rounded-xl data-[state=active]:bg-white/20 data-[state=active]:text-white text-white/60"
-                >
-                  Job Description
+                <TabsTrigger value="job" className="text-base gap-2">
+                    <Briefcase className="h-4 w-4" /> Job
                 </TabsTrigger>
-                <TabsTrigger 
-                  value="results" 
-                  className="rounded-xl data-[state=active]:bg-white/20 data-[state=active]:text-white text-white/60"
-                >
-                  Results
+                <TabsTrigger value="results" className="text-base gap-2">
+                    <BarChart className="h-4 w-4" /> Results
                 </TabsTrigger>
               </TabsList>
 
               {/* Resume Tab */}
-              <TabsContent value="resume" className="mt-8">
-                <Card className="glass-card rounded-3xl p-8 border-0">
-                  <h3 className="text-2xl font-semibold text-white mb-6">Your Resume</h3>
-                  
-                  {resume ? (
-                    <div className="space-y-6">
-                      <div className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl">
-                        <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center">
-                          <svg className="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                        </div>
-                        <div>
-                          <p className="text-white font-medium">{resume.fileName}</p>
-                          <p className="text-white/50 text-sm">{resume.parsedContent?.skills?.length || 0} skills detected</p>
-                        </div>
-                      </div>
-
-                      {resume.parsedContent?.skills?.length > 0 && (
-                        <div>
-                          <p className="text-white/70 mb-3">Detected Skills:</p>
-                          <div className="flex flex-wrap gap-2">
-                            {resume.parsedContent.skills.slice(0, 10).map((skill: string, i: number) => (
-                              <span key={i} className="px-3 py-1 bg-white/10 rounded-full text-sm text-white/80">
-                                {skill}
-                              </span>
-                            ))}
+              <TabsContent value="resume" className="mt-8 space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Your Resume</CardTitle>
+                    <CardDescription>Upload your current resume (PDF, DOCX, TXT)</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {resume ? (
+                      <div className="space-y-6">
+                        <div className="flex items-center gap-4 p-4 border rounded-lg bg-muted/50">
+                          <div className="h-10 w-10 bg-primary/10 text-primary rounded flex items-center justify-center">
+                            <FileText className="h-5 w-5" />
                           </div>
+                          <div className="flex-1">
+                            <p className="font-medium">{resume.fileName}</p>
+                            <p className="text-sm text-muted-foreground">{resume.parsedContent?.skills?.length || 0} skills detected</p>
+                          </div>
+                          <CheckCircle className="h-5 w-5 text-green-500" />
                         </div>
-                      )}
 
-                      <Button 
-                        variant="outline" 
-                        className="border-white/20 text-white hover:bg-white/10"
-                        onClick={() => fileInputRef.current?.click()}
-                      >
-                        Replace Resume
-                      </Button>
-                    </div>
-                  ) : (
-                    <div 
-                      className="border-2 border-dashed border-white/20 rounded-2xl p-12 text-center cursor-pointer hover:border-white/40 transition-colors"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <div className="w-16 h-16 bg-white/10 rounded-2xl mx-auto mb-4 flex items-center justify-center">
-                        <svg className="w-8 h-8 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                        </svg>
+                        {resume.parsedContent?.skills?.length > 0 && (
+                          <div className="space-y-2">
+                             <span className="text-sm font-medium text-muted-foreground">Detected Skills</span>
+                             <div className="flex flex-wrap gap-1.5">
+                                {resume.parsedContent.skills.slice(0, 15).map((skill: string, i: number) => (
+                                  <span key={i} className="inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80">
+                                    {skill}
+                                  </span>
+                                ))}
+                                {resume.parsedContent.skills.length > 15 && (
+                                     <span className="text-xs text-muted-foreground self-center">+{resume.parsedContent.skills.length - 15} more</span>
+                                )}
+                             </div>
+                          </div>
+                        )}
+                        
+                        <div className="flex justify-end">
+                            <Button variant="outline" onClick={() => document.getElementById('resume-upload')?.click()}>
+                            Replace Resume
+                            </Button>
+                        </div>
                       </div>
-                      <p className="text-white/80 font-medium mb-2">
-                        {uploading ? 'Uploading...' : 'Upload your resume'}
-                      </p>
-                      <p className="text-white/50 text-sm">PDF, DOCX, or TXT</p>
-                    </div>
-                  )}
+                    ) : (
+                      <div 
+                        className="border-2 border-dashed rounded-lg p-12 text-center hover:bg-muted/50 transition-colors cursor-pointer"
+                        onClick={() => document.getElementById('resume-upload')?.click()}
+                      >
+                        <Upload className="h-10 w-10 mx-auto mb-4 text-muted-foreground" />
+                        <h3 className="font-medium mb-1">Upload your resume</h3>
+                        <p className="text-sm text-muted-foreground mb-4">Drag and drop or click to select</p>
+                        <Button disabled={uploading} variant="secondary">
+                           {uploading ? 'Uploading...' : 'Select File'}
+                        </Button>
+                      </div>
+                    )}
 
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".pdf,.docx,.txt"
-                    className="hidden"
-                    onChange={handleFileUpload}
-                  />
+                    <input
+                      id="resume-upload"
+                      type="file"
+                      accept=".pdf,.docx,.txt"
+                      className="hidden"
+                      onChange={handleFileUpload}
+                    />
+                  </CardContent>
                 </Card>
               </TabsContent>
 
               {/* Job Description Tab */}
-              <TabsContent value="job" className="mt-8">
-                <Card className="glass-card rounded-3xl p-8 border-0">
-                  <h3 className="text-2xl font-semibold text-white mb-6">Job Description</h3>
-                  
-                  <div className="space-y-6">
-                    <div>
-                      <label className="text-white/70 text-sm mb-2 block">Paste URL</label>
-                      <input
+              <TabsContent value="job" className="mt-8 space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Job Description</CardTitle>
+                    <CardDescription>Paste the job URL or description text to match against.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Job URL</label>
+                      <Input
                         type="url"
                         placeholder="https://linkedin.com/jobs/..."
                         value={jobUrl}
                         onChange={(e) => setJobUrl(e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:border-white/30"
                       />
                     </div>
 
-                    <div className="text-center text-white/40">— or —</div>
+                    <div className="relative">
+                        <div className="absolute inset-0 flex items-center">
+                            <span className="w-full border-t" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                            <span className="bg-background px-2 text-muted-foreground">Or paste text</span>
+                        </div>
+                    </div>
 
-                    <div>
-                      <label className="text-white/70 text-sm mb-2 block">Paste Job Description</label>
-                      <textarea
-                        placeholder="Paste the job description here..."
+                    <div className="space-y-2">
+                      <Textarea
+                        placeholder="Paste the full job description here..."
                         value={jobText}
                         onChange={(e) => setJobText(e.target.value)}
-                        rows={8}
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:border-white/30 resize-none"
+                        rows={10}
+                        className="min-h-[200px]"
                       />
                     </div>
 
                     <Button 
-                      className="w-full bg-white text-black hover:bg-white/90 rounded-xl py-6 text-lg font-medium"
+                      className="w-full h-11 text-base"
                       onClick={handleAnalyze}
                       disabled={analyzing || (!resume && !jobText && !jobUrl)}
                     >
-                      {analyzing ? 'Analyzing...' : 'Analyze Match'}
+                      {analyzing ? (
+                          <>
+                            <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                            Analyzing...
+                          </>
+                      ) : 'Analyze Match'}
                     </Button>
-                  </div>
+                  </CardContent>
                 </Card>
               </TabsContent>
 
@@ -287,122 +324,115 @@ export default function Home() {
               <TabsContent value="results" className="mt-8">
                 {analysis ? (
                   <div className="space-y-6">
-                    {/* Score Card */}
-                    <Card className="glass-card rounded-3xl p-8 border-0 text-center">
-                      <h3 className="text-xl text-white/70 mb-6">Compatibility Score</h3>
-                      
-                      <div className="relative w-40 h-40 mx-auto mb-6">
-                        <svg className="w-full h-full transform -rotate-90">
-                          <circle
-                            cx="80"
-                            cy="80"
-                            r="70"
-                            stroke="rgba(255,255,255,0.1)"
-                            strokeWidth="12"
-                            fill="none"
-                          />
-                          <circle
-                            cx="80"
-                            cy="80"
-                            r="70"
-                            stroke="url(#scoreGradient)"
-                            strokeWidth="12"
-                            fill="none"
-                            strokeLinecap="round"
-                            strokeDasharray="440"
-                            strokeDashoffset={440 - (440 * (analysis.score?.overall || 0)) / 100}
-                            className="score-ring"
-                          />
-                          <defs>
-                            <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                              <stop offset="0%" stopColor="#8b5cf6" />
-                              <stop offset="100%" stopColor="#ec4899" />
-                            </linearGradient>
-                          </defs>
-                        </svg>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <span className="text-5xl font-bold text-white">{analysis.score?.overall || 0}</span>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-3 gap-4">
-                        <div className="bg-white/5 rounded-xl p-4">
-                          <p className="text-white/50 text-sm">Skills</p>
-                          <p className="text-2xl font-bold text-white">{analysis.score?.skills || 0}%</p>
-                        </div>
-                        <div className="bg-white/5 rounded-xl p-4">
-                          <p className="text-white/50 text-sm">Experience</p>
-                          <p className="text-2xl font-bold text-white">{analysis.score?.experience || 0}%</p>
-                        </div>
-                        <div className="bg-white/5 rounded-xl p-4">
-                          <p className="text-white/50 text-sm">Keywords</p>
-                          <p className="text-2xl font-bold text-white">{analysis.score?.keywords || 0}%</p>
-                        </div>
-                      </div>
+                    <Card>
+                        <CardHeader className="text-center pb-2">
+                             <CardTitle>Compatibility Score</CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex flex-col items-center">
+                              <div className="relative flex items-center justify-center">
+                                 <svg className="h-40 w-40 -rotate-90 text-muted/20">
+                                   <circle cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="12" fill="none" />
+                                 </svg>
+                                 <svg className="absolute h-40 w-40 -rotate-90 text-primary">
+                                    <circle 
+                                        cx="80" cy="80" r="70" 
+                                        stroke="currentColor" strokeWidth="12" fill="none"
+                                        strokeDasharray={440}
+                                        strokeDashoffset={440 - (440 * (analysis.score?.overall || 0)) / 100}
+                                        strokeLinecap="round"
+                                        className="transition-all duration-1000 ease-out"
+                                    />
+                                 </svg>
+                                 <span className="absolute text-5xl font-bold">{analysis.score?.overall || 0}</span>
+                              </div>
+                              
+                              <div className="grid grid-cols-3 gap-8 mt-8 w-full">
+                                    <div className="text-center">
+                                        <div className="text-2xl font-bold">{analysis.score?.skills || 0}%</div>
+                                        <div className="text-xs text-muted-foreground uppercase tracking-wider mt-1">Skills</div>
+                                    </div>
+                                    <div className="text-center">
+                                        <div className="text-2xl font-bold">{analysis.score?.experience || 0}%</div>
+                                        <div className="text-xs text-muted-foreground uppercase tracking-wider mt-1">Expr</div>
+                                    </div>
+                                    <div className="text-center">
+                                        <div className="text-2xl font-bold">{analysis.score?.keywords || 0}%</div>
+                                        <div className="text-xs text-muted-foreground uppercase tracking-wider mt-1">Keywords</div>
+                                    </div>
+                              </div>
+                        </CardContent>
                     </Card>
 
-                    {/* Suggestions */}
-                    {analysis.suggestions?.length > 0 && (
-                      <Card className="glass-card rounded-3xl p-8 border-0">
-                        <h3 className="text-xl text-white mb-6">Improvement Suggestions</h3>
-                        <div className="space-y-4">
-                          {analysis.suggestions.map((suggestion: any, i: number) => (
-                            <div key={i} className="p-4 bg-white/5 rounded-xl">
-                              <div className="flex items-center gap-2 mb-2">
-                                <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                                  suggestion.priority === 'high' ? 'bg-red-500/20 text-red-300' :
-                                  suggestion.priority === 'medium' ? 'bg-yellow-500/20 text-yellow-300' :
-                                  'bg-green-500/20 text-green-300'
-                                }`}>
-                                  {suggestion.priority}
-                                </span>
-                                <span className="text-white/50 text-sm">{suggestion.category}</span>
-                              </div>
-                              <h4 className="text-white font-medium mb-1">{suggestion.title}</h4>
-                              <p className="text-white/60 text-sm">{suggestion.description}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </Card>
-                    )}
-
-                    {/* Keywords */}
                     <div className="grid md:grid-cols-2 gap-6">
-                      {analysis.matchedKeywords?.length > 0 && (
-                        <Card className="glass-card rounded-3xl p-6 border-0">
-                          <h4 className="text-white font-medium mb-4">✓ Matched Keywords</h4>
-                          <div className="flex flex-wrap gap-2">
-                            {analysis.matchedKeywords.map((kw: string, i: number) => (
-                              <span key={i} className="px-3 py-1 bg-green-500/20 text-green-300 rounded-full text-sm">
-                                {kw}
-                              </span>
-                            ))}
-                          </div>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2 text-green-500">
+                                    <CheckCircle className="h-5 w-5" /> Matched Keywords
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex flex-wrap gap-1.5">
+                                    {analysis.matchedKeywords?.map((kw: string, i: number) => (
+                                        <span key={i} className="inline-flex items-center rounded-md border border-green-500/20 bg-green-500/10 px-2.5 py-0.5 text-xs font-semibold text-green-500">
+                                            {kw}
+                                        </span>
+                                    ))}
+                                </div>
+                            </CardContent>
                         </Card>
-                      )}
-                      {analysis.missingKeywords?.length > 0 && (
-                        <Card className="glass-card rounded-3xl p-6 border-0">
-                          <h4 className="text-white font-medium mb-4">✗ Missing Keywords</h4>
-                          <div className="flex flex-wrap gap-2">
-                            {analysis.missingKeywords.map((kw: string, i: number) => (
-                              <span key={i} className="px-3 py-1 bg-red-500/20 text-red-300 rounded-full text-sm">
-                                {kw}
-                              </span>
-                            ))}
-                          </div>
+                        
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2 text-destructive">
+                                    <XCircle className="h-5 w-5" /> Missing Keywords
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex flex-wrap gap-1.5">
+                                    {analysis.missingKeywords?.map((kw: string, i: number) => (
+                                        <span key={i} className="inline-flex items-center rounded-md border border-destructive/20 bg-destructive/10 px-2.5 py-0.5 text-xs font-semibold text-destructive">
+                                            {kw}
+                                        </span>
+                                    ))}
+                                </div>
+                            </CardContent>
                         </Card>
-                      )}
                     </div>
+
+                    {analysis.suggestions?.length > 0 && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Suggestions</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                {analysis.suggestions.map((suggestion, i) => (
+                                    <div key={i} className="p-4 rounded-lg border bg-muted/50">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                                                suggestion.priority === 'high' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                                                suggestion.priority === 'medium' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                                                'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                            }`}>
+                                                {suggestion.priority}
+                                            </span>
+                                            <span className="text-xs text-muted-foreground">{suggestion.category}</span>
+                                        </div>
+                                        <h4 className="font-semibold mb-1">{suggestion.title}</h4>
+                                        <p className="text-sm text-muted-foreground">{suggestion.description}</p>
+                                    </div>
+                                ))}
+                            </CardContent>
+                        </Card>
+                    )}
                   </div>
                 ) : (
-                  <Card className="glass-card rounded-3xl p-12 border-0 text-center">
-                    <div className="w-16 h-16 bg-white/10 rounded-2xl mx-auto mb-4 flex items-center justify-center">
-                      <svg className="w-8 h-8 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                      </svg>
-                    </div>
-                    <p className="text-white/60">No analysis yet. Upload your resume and paste a job description to get started.</p>
-                  </Card>
+                    <Card className="p-12 text-center">
+                         <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
+                            <BarChart className="h-6 w-6 text-muted-foreground" />
+                         </div>
+                         <h3 className="font-semibold text-lg">No analysis generated yet</h3>
+                         <p className="text-muted-foreground mt-1">Upload a resume and provide a job description to see results.</p>
+                    </Card>
                 )}
               </TabsContent>
             </Tabs>

@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { signInWithGoogle, getIdToken, type User, onAuthChange } from '@/lib/firebase';
 import { api } from '@/lib/api';
+import { Loader2, CheckCircle2, AlertCircle, Link2 } from 'lucide-react';
+import { ModeToggle } from '@/components/mode-toggle';
 
 export default function ExtensionAuthPage() {
   const searchParams = useSearchParams();
@@ -41,7 +43,6 @@ export default function ExtensionAuthPage() {
         setMessage('Connecting to extension...');
         const token = await getIdToken();
         
-        // Fetch resume data
         let resume = null;
         const res = await api.getResume(token || '');
         if (res.success && res.data) {
@@ -61,7 +62,6 @@ export default function ExtensionAuthPage() {
                     setStatus('error');
                     setMessage('Failed to reach extension. Make sure it is installed and enabled.');
                 } else {
-                    console.log('Extension notified:', response);
                     setStatus('success');
                     setMessage('Successfully connected! You can now close this tab.');
                 }
@@ -81,7 +81,6 @@ export default function ExtensionAuthPage() {
     try {
         setStatus('loading');
         await signInWithGoogle();
-        // creating listener in useEffect will trigger handleHandshake
     } catch (error) {
         console.error(error);
         setStatus('error');
@@ -90,58 +89,68 @@ export default function ExtensionAuthPage() {
   };
 
   return (
-    <div className="min-h-screen gradient-bg flex items-center justify-center p-4">
-      <Card className="glass-card w-full max-w-md p-8 text-center rounded-3xl border-0">
-        <div className="mb-6 flex justify-center">
-            <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center">
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+      <div className="absolute top-4 right-4">
+        <ModeToggle />
+      </div>
+
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+            <div className="mx-auto h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                <Link2 className="h-6 w-6 text-primary" />
             </div>
-        </div>
-
-        <h1 className="text-2xl font-bold text-white mb-2">Connect Extension</h1>
-        <p className="text-white/60 mb-8">{message}</p>
-
-        {status === 'loading' && (
-            <div className="flex justify-center mb-6">
-                 <div className="w-8 h-8 border-4 border-white/20 border-t-white rounded-full animate-spin"></div>
-            </div>
-        )}
-
-        {status === 'idle' && (
-             <Button 
-                onClick={handleSignIn}
-                className="w-full bg-white text-black hover:bg-white/90 rounded-xl py-6 text-lg"
-             >
-                Sign In with Google
-             </Button>
-        )}
-
-        {status === 'success' && (
-            <div className="space-y-4">
-                <div className="p-4 bg-green-500/20 text-green-300 rounded-xl mb-4">
-                    ✓ Connected as {user?.email}
+            <CardTitle className="text-2xl">Connect Extension</CardTitle>
+            <CardDescription>
+                {message}
+            </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+            {status === 'loading' && (
+                <div className="flex justify-center p-4">
+                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
-                <Button 
-                    variant="outline"
-                    onClick={() => window.close()}
-                    className="w-full border-white/20 text-white hover:bg-white/10 rounded-xl py-6"
-                >
-                    Close Tab
-                </Button>
-            </div>
-        )}
+            )}
 
-        {status === 'error' && (
-             <Button 
-                onClick={() => window.location.reload()}
-                className="w-full bg-white/10 hover:bg-white/20 text-white rounded-xl py-6"
-             >
-                Try Again
-             </Button>
-        )}
+            {status === 'idle' && (
+                 <Button 
+                    onClick={handleSignIn}
+                    className="w-full h-11 text-base"
+                 >
+                    Sign In to Connect
+                 </Button>
+            )}
+
+            {status === 'success' && (
+                <div className="space-y-6">
+                    <div className="flex items-center gap-3 p-4 bg-green-500/10 text-green-600 dark:text-green-400 rounded-lg border border-green-500/20">
+                        <CheckCircle2 className="h-5 w-5" />
+                        <span className="font-medium text-sm">Connected as {user?.email}</span>
+                    </div>
+                    <Button 
+                        variant="outline"
+                        onClick={() => window.close()}
+                        className="w-full"
+                    >
+                        Close Tab
+                    </Button>
+                </div>
+            )}
+
+            {status === 'error' && (
+                 <Button 
+                    onClick={() => window.location.reload()}
+                    variant="destructive"
+                    className="w-full"
+                 >
+                    Try Again
+                 </Button>
+            )}
+        </CardContent>
       </Card>
+      
+      <p className="mt-8 text-xs text-muted-foreground text-center max-w-sm">
+        Arigatoo uses secure authentication to sync your resume and settings.
+      </p>
     </div>
   );
 }
