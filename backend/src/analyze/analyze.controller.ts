@@ -46,6 +46,32 @@ export class AnalyzeController {
             return { success: false, error: 'Job description text or URL is required' };
         }
 
+        // Validate input sizes to prevent abuse
+        if (resumeText.length > 50000) {
+            return { success: false, error: 'Resume text is too long (max 50,000 characters)' };
+        }
+
+        if (jobText && jobText.length > 50000) {
+            return { success: false, error: 'Job description is too long (max 50,000 characters)' };
+        }
+
+        // Validate geminiApiKey format if provided
+        if (geminiApiKey && (geminiApiKey.length < 10 || geminiApiKey.length > 200)) {
+            return { success: false, error: 'Invalid API key format' };
+        }
+
+        // Validate jobUrl format if provided
+        if (jobUrl) {
+            try {
+                const url = new URL(jobUrl);
+                if (!['http:', 'https:'].includes(url.protocol)) {
+                    return { success: false, error: 'Invalid URL protocol (only http and https allowed)' };
+                }
+            } catch {
+                return { success: false, error: 'Invalid job URL format' };
+            }
+        }
+
         // Parse resume
         const parsedResume = await this.parseService.extractResumeData(resumeText);
 

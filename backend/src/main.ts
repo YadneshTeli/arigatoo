@@ -8,10 +8,30 @@ async function bootstrap() {
 
   // Enable CORS for web app and extension
   app.enableCors({
-    origin: [
-      'http://localhost:3000',
-      'chrome-extension://*',
-    ],
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or Postman)
+      if (!origin) return callback(null, true);
+      
+      const allowedOrigins = [
+        'http://localhost:3000',
+        'https://localhost:3000',
+        /^chrome-extension:\/\/[a-z]{32}$/, // Valid Chrome extension ID format
+      ];
+      
+      const isAllowed = allowedOrigins.some(allowed => {
+        if (allowed instanceof RegExp) {
+          return allowed.test(origin);
+        }
+        return allowed === origin;
+      });
+      
+      if (isAllowed) {
+        callback(null, true);
+      } else {
+        console.warn(`Blocked CORS request from origin: ${origin}`);
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
   });
 

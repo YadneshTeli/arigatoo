@@ -306,13 +306,28 @@ function displayResults(analysis: any) {
       analysis.suggestions.forEach((suggestion: any) => {
         const item = document.createElement('div');
         item.className = 'suggestion-item';
-        item.innerHTML = `
-          <div class="suggestion-header">
-            <span class="priority-badge ${suggestion.priority}">${suggestion.priority}</span>
-            <span class="suggestion-title">${suggestion.title}</span>
-          </div>
-          <p class="suggestion-desc">${suggestion.description}</p>
-        `;
+        
+        // Create elements safely without innerHTML to prevent XSS
+        const header = document.createElement('div');
+        header.className = 'suggestion-header';
+        
+        const priorityBadge = document.createElement('span');
+        priorityBadge.className = `priority-badge ${suggestion.priority || 'medium'}`;
+        priorityBadge.textContent = suggestion.priority || 'medium';
+        
+        const title = document.createElement('span');
+        title.className = 'suggestion-title';
+        title.textContent = suggestion.title || 'Suggestion';
+        
+        const desc = document.createElement('p');
+        desc.className = 'suggestion-desc';
+        desc.textContent = suggestion.description || '';
+        
+        header.appendChild(priorityBadge);
+        header.appendChild(title);
+        item.appendChild(header);
+        item.appendChild(desc);
+        
         suggestionsList.appendChild(item);
       });
     }

@@ -30,7 +30,17 @@ export class ParseService {
     // ============ URL Scraping for JD ============
     async scrapeJobDescription(url: string): Promise<string> {
         try {
-            const response = await fetch(url);
+            // Add timeout to prevent hanging requests
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+            
+            const response = await fetch(url, { signal: controller.signal });
+            clearTimeout(timeoutId);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
             const html = await response.text();
             const $ = cheerio.load(html);
 
@@ -58,7 +68,10 @@ export class ParseService {
             // Fallback to body text
             return this.cleanText($('body').text());
         } catch (error) {
-            throw new BadRequestException('Failed to fetch job description from URL');
+            if (error.name === 'AbortError') {
+                throw new BadRequestException('Request timeout: URL took too long to respond');
+            }
+            throw new BadRequestException(`Failed to fetch job description from URL: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
     }
 
