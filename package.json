@@ -1,0 +1,22 @@
+{
+  "name": "arigatoo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "web-app",
+    "extension",
+    "shared"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev --workspace=web-app",
+    "build:web": "npm run build --workspace=web-app",
+    "dev:extension": "npm run dev --workspace=extension",
+    "build:extension": "npm run build --workspace=extension",
+    "dev": "npm run dev:web",
+    "build": "npm run build:web && npm run build:extension"
+  },
+  "description": "Arigatoo - Web app and Chrome extension",
+  "keywords": ["nextjs", "chrome-extension"],
+  "author": "",
+  "license": "ISC"
+}
