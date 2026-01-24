@@ -1,0 +1,46 @@
+import {
+    ExceptionFilter,
+    Catch,
+    ArgumentsHost,
+    HttpException,
+    HttpStatus,
+    Logger,
+} from '@nestjs/common';
+
+@Catch()
+export class AllExceptionsFilter implements ExceptionFilter {
+    private readonly logger = new Logger(AllExceptionsFilter.name);
+
+    catch(exception: unknown, host: ArgumentsHost) {
+        const ctx = host.switchToHttp();
+        const response = ctx.getResponse();
+        const request = ctx.getRequest();
+
+        const status =
+            exception instanceof HttpException
+                ? exception.getStatus()
+                : HttpStatus.INTERNAL_SERVER_ERROR;
+
+        const message =
+            exception instanceof HttpException
+                ? exception.getResponse()
+                : exception;
+
+        this.logger.error(
+            `Http Status: ${status} Error Message: ${JSON.stringify(message)}`,
+        );
+
+        if (request.file) {
+            this.logger.log(`Request contained file: ${request.file.originalname} (${request.file.mimetype})`);
+        } else {
+            this.logger.log('Request did NOT contain a file processed by Multer');
+        }
+
+        response.status(status).json({
+            statusCode: status,
+            timestamp: new Date().toISOString(),
+            path: request.url,
+            error: message,
+        });
+    }
+}
