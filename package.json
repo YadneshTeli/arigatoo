@@ -5,18 +5,27 @@
   "workspaces": [
     "web-app",
     "extension",
-    "shared"
+    "shared",
+    "backend"
   ],
   "scripts": {
     "dev:web": "npm run dev --workspace=web-app",
     "build:web": "npm run build --workspace=web-app",
     "dev:extension": "npm run dev --workspace=extension",
     "build:extension": "npm run build --workspace=extension",
+    "dev:backend": "npm run start:dev --workspace=backend",
+    "build:backend": "npm run build --workspace=backend",
+    "test:backend": "npm run test --workspace=backend",
     "dev": "npm run dev:web",
-    "build": "npm run build:web && npm run build:extension"
+    "build": "npm run build:web && npm run build:extension && npm run build:backend"
   },
-  "description": "Arigatoo - Web app and Chrome extension",
-  "keywords": ["nextjs", "chrome-extension"],
+  "description": "Arigatoo - Resume Analyzer with Web app, Chrome extension, and API",
+  "keywords": [
+    "nextjs",
+    "chrome-extension",
+    "nestjs",
+    "resume-analyzer"
+  ],
   "author": "",
   "license": "ISC"
 }
