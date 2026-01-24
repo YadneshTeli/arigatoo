@@ -308,9 +308,6 @@ async function analyze() {
     }
   }
 }
-    analyzeBtn.disabled = false;
-  }
-}
 
 // Display results
 function displayResults(analysis: any) {
