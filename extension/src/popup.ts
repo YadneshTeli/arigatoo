@@ -2,6 +2,21 @@
 const API_URL = 'http://localhost:3001/api';
 const WEB_URL = 'http://localhost:3000';
 
+interface Experience {
+  company?: string;
+  title?: string;
+  startDate?: string;
+  endDate?: string;
+  description?: string;
+}
+
+interface Education {
+  school?: string;
+  degree?: string;
+  field?: string;
+  graduationDate?: string;
+}
+
 interface ParsedResume {
   rawText?: string;
   name?: string;
@@ -9,8 +24,8 @@ interface ParsedResume {
   phone?: string;
   location?: string;
   skills?: string[];
-  experience?: unknown[];
-  education?: unknown[];
+  experience?: Experience[];
+  education?: Education[];
   keywords?: string[];
 }
 
