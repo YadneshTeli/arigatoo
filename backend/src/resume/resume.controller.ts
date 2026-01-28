@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Delete, UseGuards, Req, UploadedFile, UseInterceptors, Body } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { Throttle } from '@nestjs/throttler';
 import { ResumeService } from './resume.service';
 import { FirebaseAuthGuard } from '../auth/guards/firebase-auth.guard';
 import type { ParsedResume } from 'arigatoo-shared';
@@ -21,6 +22,7 @@ export class ResumeController {
 
     @Post('upload')
     @UseGuards(FirebaseAuthGuard)
+    @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 uploads per minute
     @UseInterceptors(FileInterceptor('file', {
         limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit
     }))

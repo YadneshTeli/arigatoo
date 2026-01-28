@@ -129,6 +129,9 @@ if (isJobPage()) {
     chrome.runtime.sendMessage({
         type: 'JOB_PAGE_DETECTED',
         url: window.location.href,
+    }).catch((error) => {
+        // Extension context might be invalidated, ignore error
+        console.debug('Failed to send message to background:', error);
     });
 }
 

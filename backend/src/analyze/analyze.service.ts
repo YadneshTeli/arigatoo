@@ -273,6 +273,6 @@ Respond in JSON format with:
     }
 
     private generateId(): string {
-        return `analysis_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        return `analysis_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
     }
 }
